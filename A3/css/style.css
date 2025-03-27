@@ -1,0 +1,31 @@
+.site-menu {
+    display: flex;
+    flex-direction: row-reverse;
+}
+
+.wrapper {
+    height: 200px;
+    display: flex;
+    align-items: center;
+    background-color: rgb(91, 28, 128);
+}
+
+.block {
+    /*width: 100px; */
+    height: 50px;
+    color: #fff;
+    font-size: 30px;
+    justify-content: center;
+    align-items: center;
+    display: flex;
+}
+
+.special-1 {
+    width: 70%;
+    background-color: rgb(245, 155, 38);
+}
+
+.special-2 {
+    width: 30%;
+    background-color: rgb(206, 28, 28);
+}

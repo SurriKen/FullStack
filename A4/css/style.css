@@ -1,0 +1,9 @@
+.intro {
+    color: white;
+	padding: 50px 25px;
+	background-image: url('../images/1.jpg');
+	background-repeat: no-repeat;
+	background-size: cover;
+	background-position: 50% 70%;
+	background-color: rgb(156, 93, 90);
+}
