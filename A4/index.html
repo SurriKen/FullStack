@@ -18,23 +18,38 @@
     </form>
 
     <form class="form" action="" method="GET">
-       <fieldset>
-               <legend>Опции</legend>
-               <label for="option-1">Опция 1: </label>
-               <input type="checkbox" id="option-1" name="option" value="option-1">
-               <label for="option-2">Опция 2: </label>
-               <input type="checkbox" id="option-2" name="option" value="option-2">
-               <label for="option-3">Опция 3: </label>
-               <input type="checkbox" id="option-3" name="option" value="option-3">
-       </fieldset>
-       <fieldset>
-               <legend>Варианты</legend>
-               <label for="variant-1">Вариант 1: </label>
-               <input type="radio" id="variant-1" name="variant" value="variant-1">
-               <label for="variant-2">Вариант 2: </label>
-               <input type="radio" id="variant-2" name="variant" value="variant-2">
+        <fieldset>
+            <legend>Опции</legend>
+            <label for="option-1">Опция 1: </label>
+            <input type="checkbox" id="option-1" name="option" value="option-1">
+            <label for="option-2">Опция 2: </label>
+            <input type="checkbox" id="option-2" name="option" value="option-2">
+            <label for="option-3">Опция 3: </label>
+            <input type="checkbox" id="option-3" name="option" value="option-3">
+        </fieldset>
+        <fieldset>
+            <legend>Варианты</legend>
+            <label for="variant-1">Вариант 1: </label>
+            <input type="radio" id="variant-1" name="variant" value="variant-1">
+            <label for="variant-2">Вариант 2: </label>
+            <input type="radio" id="variant-2" name="variant" value="variant-2">
        </fieldset>
        <button type="submit">Показать</button>
-</form>
+    </form>
+    <br>
+    <form class="form" action="" method="GET">
+       <button class="popup-button">Войти</button>
+       <div class="popup"></div>
+    </form>
+
+    <script>
+    	let button = document.querySelector('.popup-button');
+    	button.addEventListener('click', showPopup);
+
+    	function showPopup() {
+        	document.querySelector('.popup').classList.toggle('visible');
+        	console.log('showPopup работает');
+    	}
+	</script>
 </body>
 </html>

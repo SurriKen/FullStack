@@ -1,9 +1,21 @@
 .intro {
-    color: white;
+    color: black;
 	padding: 50px 25px;
 	background-image: url('../images/1.jpg');
 	background-repeat: no-repeat;
 	background-size: cover;
 	background-position: 50% 70%;
 	background-color: rgb(156, 93, 90);
+	background-opacity: .75;
+}
+
+.popup {
+	width: 500px;
+	height: 500px;
+	background-color: rgb(231, 96, 18);
+	display: none;
+}
+
+.visible {
+	display: block;
 }
