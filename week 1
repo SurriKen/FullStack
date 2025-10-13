@@ -1,0 +1,410 @@
+📚 НЕДЕЛЯ 1: Основы asyncio
+🔍 День 1-2: Теория асинхронности
+📖 ЧТО ИЗУЧАТЬ:
+Обязательные ресурсы:
+
+**[Python Asyncio Tutorial - LambdaTest](https://web - Самый полный гайд
+
+**[Real Python - Python asyncio](https://web - Практические примеры
+
+Официальная документация asyncio - Справочник
+
+Дополнительные материалы:
+
+YouTube: Asyncio in Python - Full Tutorial - Видео объяснение
+
+Codefinity - Asynchronous Programming - Интерактивные примеры
+
+💻 ПРАКТИЧЕСКОЕ ЗАДАНИЕ 1.1:
+python
+# ЗАДАНИЕ: Сравните время выполнения синхронного и асинхронного кода
+import time           # Для измерения времени выполнения
+import asyncio        # Основная библиотека для асинхронности
+import requests       # Синхронная библиотека для HTTP запросов
+import aiohttp        # Асинхронная библиотека для HTTP запросов
+
+# ========== СИНХРОННЫЙ КОД (медленный) ==========
+
+def sync_fetch_url(url):
+    """
+    Синхронная функция для получения данных с URL
+    url: строка с адресом веб-сайта
+    Возвращает: длину текста ответа
+    """
+
+    # requests.get() блокирует выполнение до получения ответа
+    response = requests.get(url)
+
+    # Возвращаем длину текста (для простоты измерения)
+    return len(response.text)
+
+def sync_main():
+    """
+    Синхронная главная функция - выполняет запросы по очереди
+    """
+
+    # Засекаем время начала выполнения
+    start_time = time.time()
+
+    # Список URL для тестирования
+    urls = [
+        'https://httpbin.org/delay/1',  # Задержка 1 сек
+        'https://httpbin.org/delay/1',  # Задержка 1 сек
+        'https://httpbin.org/delay/1'   # Задержка 1 сек
+    ]
+
+    # Выполняем запросы ПОСЛЕДОВАТЕЛЬНО (один за другим)
+    results = []
+    for url in urls:
+
+        print(f"Синхронно: начинаю запрос к {url}")
+
+        # Ждем завершения запроса (БЛОКИРУЕМСЯ на ~1 секунду)
+        result = sync_fetch_url(url)
+        results.append(result)
+
+        print(f"Синхронно: завершил запрос, получено байт: {result}")
+
+    # Подсчитываем общее время
+    total_time = time.time() - start_time
+    print(f"🐌 СИНХРОННО: Общее время = {total_time:.2f} секунд")
+
+    return results
+
+# ========== АСИНХРОННЫЙ КОД (быстрый) ==========
+
+async def async_fetch_url(session, url):
+    """
+    Асинхронная функция для получения данных с URL
+    session: объект aiohttp.ClientSession для HTTP запросов
+    url: строка с адресом веб-сайта
+    Возвращает: длину текста ответа
+    """
+
+    # async with автоматически закроет соединение после использования
+    async with session.get(url) as response:
+
+        # await означает "жди результат, но НЕ блокируй другие задачи"
+        text = await response.text()
+
+        # Возвращаем длину текста
+        return len(text)
+
+async def async_main():
+    """
+    Асинхронная главная функция - выполняет запросы ОДНОВРЕМЕННО
+    """
+
+    # Засекаем время начала выполнения
+    start_time = time.time()
+
+    # Список URL для тестирования (те же самые)
+    urls = [
+        'https://httpbin.org/delay/1',  # Задержка 1 сек
+        'https://httpbin.org/delay/1',  # Задержка 1 сек
+        'https://httpbin.org/delay/1'   # Задержка 1 сек
+    ]
+
+    # Создаем HTTP сессию для всех запросов
+    async with aiohttp.ClientSession() as session:
+
+        # Создаем список задач (НЕ выполняем их сразу!)
+        tasks = []
+        for url in urls:
+
+            print(f"Асинхронно: создаю задачу для {url}")
+
+            # Создаем задачу, но НЕ ждем ее выполнения
+            task = async_fetch_url(session, url)
+            tasks.append(task)
+
+        # gather() запускает ВСЕ задачи ОДНОВРЕМЕННО и ждет завершения всех
+        print("Асинхронно: запускаю ВСЕ задачи одновременно...")
+        results = await asyncio.gather(*tasks)
+
+        # Выводим результаты
+        for i, result in enumerate(results):
+            print(f"Асинхронно: задача {i+1} завершена, получено байт: {result}")
+
+    # Подсчитываем общее время
+    total_time = time.time() - start_time
+    print(f"🚀 АСИНХРОННО: Общее время = {total_time:.2f} секунд")
+
+    return results
+
+# ========== ТОЧКА ВХОДА В ПРОГРАММУ ==========
+
+if __name__ == "__main__":
+    """
+    Главная функция для запуска обоих тестов
+    """
+
+    print("=" * 50)
+    print("🧪 ТЕСТ: Синхронный vs Асинхронный код")
+    print("=" * 50)
+
+    # Сначала тестируем синхронный код
+    print("\n1️⃣ ТЕСТ СИНХРОННОГО КОДА:")
+    sync_results = sync_main()
+
+    print("\n" + "="*30)
+
+    # Затем тестируем асинхронный код
+    print("\n2️⃣ ТЕСТ АСИНХРОННОГО КОДА:")
+    async_results = asyncio.run(async_main())
+
+    print("\n" + "="*50)
+    print("📊 ИТОГИ:")
+    print("- Синхронный: ~3 секунды (1+1+1)")
+    print("- Асинхронный: ~1 секунда (max(1,1,1))")
+    print("✅ Асинхронность в 3 раза быстрее!")
+    print("="*50)
+
+# ОЖИДАЕМЫЙ РЕЗУЛЬТАТ:
+# Синхронный код: ~3 секунды
+# Асинхронный код: ~1 секунда
+# Разница в производительности: 3x
+✅ ЗАДАЧИ ДЛЯ САМОПРОВЕРКИ:
+Теоретические вопросы:
+
+Объясните своими словами, что такое Event Loop
+
+Когда НЕ стоит использовать asyncio?
+
+В чем разница между await и обычным вызовом функции?
+
+Практические задачи:
+
+Модифицируйте код выше для запроса 10 разных URL
+
+Добавьте обработку ошибок с try/except
+
+Измерьте разницу во времени
+
+🔧 День 3-4: Event Loop и корутины
+💻 ПРАКТИЧЕСКОЕ ЗАДАНИЕ 1.2:
+python
+# ЗАДАНИЕ: Изучаем Event Loop и создание корутин
+import asyncio        # Основная асинхронная библиотека
+import time          # Для засечения времени
+from typing import List  # Для аннотации типов
+
+# ========== ПОНИМАНИЕ КОРУТИН ==========
+
+async def simple_coroutine(name: str, delay: int):
+    """
+    Простая корутина для демонстрации работы
+    name: имя корутины для идентификации
+    delay: время задержки в секундах
+    Возвращает: сообщение о завершении работы
+    """
+
+    print(f"📝 Корутина '{name}' начала работу")
+
+    # asyncio.sleep() имитирует асинхронную операцию (не блокирующую)
+    # await передает управление Event Loop'у
+    await asyncio.sleep(delay)
+
+    print(f"✅ Корутина '{name}' завершила работу через {delay}с")
+
+    # Возвращаем результат работы корутины
+    return f"Результат от {name} после {delay} секунд"
+
+# ========== РАБОТА С EVENT LOOP ==========
+
+async def demonstrate_event_loop():
+    """
+    Демонстрация того, как Event Loop управляет корутинами
+    """
+
+    print("🔄 Event Loop начал работу")
+    print("-" * 40)
+
+    # Создаем несколько корутин с разным временем выполнения
+    coroutine1 = simple_coroutine("Alpha", 3)    # 3 секунды
+    coroutine2 = simple_coroutine("Beta", 1)     # 1 секунда
+    coroutine3 = simple_coroutine("Gamma", 2)    # 2 секунды
+
+    # Засекаем время начала выполнения
+    start_time = time.time()
+
+    # asyncio.gather() запускает все корутины ОДНОВРЕМЕННО
+    # Event Loop переключается между ними при встрече с await
+    results = await asyncio.gather(
+        coroutine1,  # Запустится и будет ждать 3 сек
+        coroutine2,  # Запустится и завершится через 1 сек
+        coroutine3   # Запустится и завершится через 2 сек
+    )
+
+    # Подсчитываем общее время (должно быть ~3 сек, а не 3+1+2=6 сек)
+    total_time = time.time() - start_time
+
+    print("-" * 40)
+    print(f"⏱️  Общее время выполнения: {total_time:.2f} секунд")
+    print(f"📊 Результаты: {results}")
+
+    return results
+
+# ========== УПРАВЛЕНИЕ ЗАДАЧАМИ (TASKS) ==========
+
+async def demonstrate_tasks():
+    """
+    Демонстрация создания и управления задачами (Tasks)
+    Задача = корутина, обернутая в объект для управления
+    """
+
+    print("\n🎯 Демонстрация работы с Tasks")
+    print("-" * 40)
+
+    # Создаем задачи явно с помощью create_task()
+    # Это дает больше контроля над выполнением
+    task1 = asyncio.create_task(
+        simple_coroutine("Task-1", 2),
+        name="Важная задача 1"  # Человеко-читаемое имя
+    )
+
+    task2 = asyncio.create_task(
+        simple_coroutine("Task-2", 1),
+        name="Быстрая задача 2"
+    )
+
+    task3 = asyncio.create_task(
+        simple_coroutine("Task-3", 3),
+        name="Долгая задача 3"
+    )
+
+    # Получаем информацию о созданных задачах
+    all_tasks = [task1, task2, task3]
+
+    print("📋 Созданные задачи:")
+    for task in all_tasks:
+        print(f"   - {task.get_name()}: {task}")
+
+    # Ждем завершения первых двух задач
+    print("\n⏳ Ждем завершения первых двух задач...")
+    completed_tasks = await asyncio.gather(task1, task2)
+
+    print(f"✅ Две задачи завершены: {completed_tasks}")
+
+    # Проверяем статус третьей задачи
+    if not task3.done():
+        print(f"⏸️  Задача 3 все еще выполняется...")
+
+        # Ждем ее завершения
+        task3_result = await task3
+        print(f"✅ Задача 3 завершена: {task3_result}")
+
+    return all_tasks
+
+# ========== ОБРАБОТКА ОШИБОК В АСИНХРОННОМ КОДЕ ==========
+
+async def error_prone_coroutine(name: str, should_fail: bool):
+    """
+    Корутина, которая может завершиться с ошибкой
+    name: имя корутины
+    should_fail: флаг, определяющий, должна ли корутина упасть с ошибкой
+    """
+
+    print(f"🎲 '{name}' начала работу (упадет: {should_fail})")
+
+    # Имитируем работу
+    await asyncio.sleep(1)
+
+    # Генерируем ошибку если нужно
+    if should_fail:
+        raise ValueError(f"❌ Ошибка в корутине '{name}'!")
+
+    print(f"✅ '{name}' успешно завершена")
+    return f"Результат от {name}"
+
+async def demonstrate_error_handling():
+    """
+    Демонстрация обработки ошибок в асинхронном коде
+    """
+
+    print("\n🚨 Демонстрация обработки ошибок")
+    print("-" * 40)
+
+    # Создаем корутины, одна из которых упадет с ошибкой
+    good_coroutine = error_prone_coroutine("Хорошая", False)
+    bad_coroutine = error_prone_coroutine("Плохая", True)
+    another_good = error_prone_coroutine("Еще хорошая", False)
+
+    try:
+        # gather() остановится при первой ошибке
+        results = await asyncio.gather(
+            good_coroutine,
+            bad_coroutine,      # Эта корутина упадет
+            another_good,
+            return_exceptions=True  # НЕ останавливаемся при ошибках
+        )
+
+        print("📊 Результаты выполнения:")
+        for i, result in enumerate(results, 1):
+            if isinstance(result, Exception):
+                print(f"   {i}. ❌ Ошибка: {result}")
+            else:
+                print(f"   {i}. ✅ Успех: {result}")
+
+    except Exception as e:
+        print(f"💥 Критическая ошибка: {e}")
+
+# ========== ГЛАВНАЯ ФУНКЦИЯ ==========
+
+async def main():
+    """
+    Главная асинхронная функция для запуска всех демонстраций
+    """
+
+    print("🚀 Изучаем Event Loop и корутины")
+    print("=" * 50)
+
+    # Демонстрация 1: Как работает Event Loop
+    await demonstrate_event_loop()
+
+    # Демонстрация 2: Управление задачами
+    await demonstrate_tasks()
+
+    # Демонстрация 3: Обработка ошибок
+    await demonstrate_error_handling()
+
+    print("\n" + "=" * 50)
+    print("🎓 Урок завершен! Event Loop и корутины изучены.")
+
+# ========== ТОЧКА ВХОДА ==========
+
+if __name__ == "__main__":
+    # asyncio.run() автоматически создает и запускает Event Loop
+    asyncio.run(main())
+
+# ОЖИДАЕМЫЙ ВЫВОД:
+# 1. Корутины запускаются одновременно
+# 2. Event Loop переключается между ними
+# 3. Общее время = время самой долгой корутины
+# 4. Tasks дают больше контроля
+# 5. Ошибки можно обрабатывать gracefully
+🎯 КОНТРОЛЬНЫЕ ВОПРОСЫ (день 4):
+Ответьте на вопросы и проверьте себя:
+
+Что выведет этот код?
+
+python
+async def test():
+    print("A")
+    await asyncio.sleep(0)
+    print("B")
+
+asyncio.run(test())
+В чем разница между этими двумя подходами?
+
+python
+# Подход 1
+results = await asyncio.gather(task1, task2, task3)
+
+# Подход 2
+result1 = await task1
+result2 = await task2
+result3 = await task3
+
+Практическое задание: Создайте программу, которая скачивает данные с 5 разных API одновременно и выводит результаты по мере поступления.
+
