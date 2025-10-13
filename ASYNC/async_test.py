@@ -1,6 +1,6 @@
 #https://docs.python.org/3/library/asyncio.html
 #https://realpython.com/async-io-python/
-
+#
 
 import asyncio
 import sys
@@ -13,7 +13,6 @@ async def coroutine_1():
     await asyncio.sleep(2)
     print("After sleep " + sys._getframe().f_code.co_name + " " + str(datetime.now().time()))
     return "coroutine_1"
-
 
 async def coroutine_2():
     print("Enter asyncio.gather " + sys._getframe().f_code.co_name + " " + str(datetime.now().time()))
