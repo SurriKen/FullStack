@@ -11,7 +11,6 @@ class Game:
         self.zero_sign = "0"
         self.cross_sign = "X"
         self.win_conditions = self._get_win_conditions(n_dim=self.n_dim)
-
         self.field_template = self._get_empty_field(
             n_dim=self.n_dim,
             empty_sign=self.empty_sign
