@@ -2,21 +2,24 @@
 import random
 
 class Game:
-    def __init__(self):
-        self.FIELDS_COORD = (
-            (1, 1), (1, 2), (1, 3),
-            (2, 1), (2, 2), (2, 3),
-            (3, 1), (3, 2), (3, 3),
-        )
+    def __init__(self, n_dim = 3):
+        self.n_dim = n_dim
+        self.FIELDS_COORD = []
+        for i in range(n_dim):
+            for j in range(n_dim):
+                self.FIELDS_COORD.append((i + 1, j + 1))
         self.empty_sign = "-"
         self.zero_sign = "0"
         self.cross_sign = "X"
-        self.win_conditions = [(0, 1, 2), (3, 4, 5), (6, 7, 8),
-                               (0, 3, 6), (1, 4, 7), (2, 5, 8),
-                               (0, 4, 8), (2, 4, 6)]
+        self.win_conditions = self.get_win_conditions(n_dim=self.n_dim)
+
         self.cross_data = []
         self.zero_data = []
-        self.field_template = f"    1   2   3 \n1 | - | - | - |\n2 | - | - | - |\n3 | - | - | - |"
+        # self.field_template = f"    1   2   3 \n1 | - | - | - |\n2 | - | - | - |\n3 | - | - | - |"
+        self.field_template = self.get_empty_field(
+            n_dim=self.n_dim,
+            empty_sign=self.empty_sign
+        )
         self.indices = [i for i, char in enumerate(self.field_template) if char == self.empty_sign]
         self.current_player = None
         self.current_coord = None
@@ -26,6 +29,35 @@ class Game:
             f"Player {self.cross_sign}": [],
         }
         self.empty_coords = None
+
+    @staticmethod
+    def get_win_conditions(n_dim = 3):
+        win_conditions = []
+        for i in range(n_dim * n_dim):
+            if (i + 1) % n_dim == 0:
+                win_conditions.append(tuple(range(i + 1 - n_dim, i + 1)))
+        for j in range(n_dim):
+            win_conditions.append(tuple(range(j, n_dim * n_dim + j, n_dim)))
+
+        cross_lr = [c[i] for i, c in enumerate(win_conditions[:n_dim])]
+        win_conditions.append(tuple(cross_lr))
+
+        cross_rl = [c[-(i + 1)] for i, c in enumerate(win_conditions[:n_dim])]
+        win_conditions.append(tuple(cross_rl))
+        return win_conditions
+
+    @staticmethod
+    def get_empty_field(n_dim = 3, empty_sign = "-"):
+        head_str = f"  "
+        for i in range(n_dim):
+            head_str = f"{head_str}  {i + 1} "
+        body_str = f"{head_str}\n"
+        for i in range(n_dim):
+            row_str = f"{i + 1} |"
+            for _ in range(n_dim):
+                row_str = f"{row_str} {empty_sign} |"
+            body_str = f"{body_str}{row_str}\n"
+        return body_str
 
     def input_text(self):
         input_text = input(f"Player {self.current_player} input coordinates. Use format 'row column' with space between\n")
@@ -50,11 +82,11 @@ class Game:
         return input_coord
 
     def winner_check(self):
-        if len(self.player_fields_history[f"Player {self.current_player}"]) >= 3:
+        if len(self.player_fields_history[f"Player {self.current_player}"]) >= self.n_dim:
             for coord in self.win_conditions:
                 wc = set([id_ for i, id_ in enumerate(self.FIELDS_COORD) if i in coord])
                 # print("wc", wc, coord, set(self.player_fields[f"Player {self.current_player}"]))
-                if len(wc.intersection(set(self.player_fields_history[f"Player {self.current_player}"]))) == 3:
+                if len(wc.intersection(set(self.player_fields_history[f"Player {self.current_player}"]))) == self.n_dim:
                     return True
         return False
 
@@ -93,25 +125,27 @@ class Game:
                 print(f"Players has a draw!!! Nobody wins, nobody lost!")
                 print("_" * 50)
                 break
-            if step > 10:
+            if step > self.n_dim ** 2 + 1:
                 break
 
 
 if __name__ == "__main__":
-    game = Game()
-    # game.current_player = random.choice([game.zero_sign, game.cross_sign])
-    # game.empty_coords = list(game.FIELDS_COORD)
-    # game.current_coord = game.input_step()
-    # current_ind = game.FIELDS_COORD.index(game.current_coord)
-    # print(game.current_coord, game.FIELDS_COORD.index(game.current_coord))
-    # game.add_step_to_template()
+    game = Game(n_dim=5)
+    # print(game.FIELDS_COORD)
+    print(game.win_conditions)
     # print(game.field_template)
+    # print(game.indices)
+
+
+    # print(game.get_empty_field(n_dim=5, empty_sign="-"))
     game.start()
     print(game.history)
     print(game.player_fields_history)
-    # xxx = {(1, 1), (3, 2), (3, 3)}
-    # yyy = {(1, 1), (1, 2), (2, 2)}
-    # print(xxx.intersection(yyy))
+    print(game.win_conditions)
+
+
+
+
 
 
 
