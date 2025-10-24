@@ -20,3 +20,5 @@ for i in [1, 2, 3, 4, 5, 1, 6, 8, 15, 2]:
    print(f(i))
    print("----")
 
+print(requests.__version__)
+print(bs4.__version__)
