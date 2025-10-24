@@ -2,6 +2,7 @@ import random
 
 class Game:
     def __init__(self, n_dim: int = 3):
+
         self.n_dim = n_dim
         self.FIELDS_COORD = []
         for i in range(n_dim):
