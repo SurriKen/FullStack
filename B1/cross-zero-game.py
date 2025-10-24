@@ -8,6 +8,7 @@ class Game:
         for i in range(n_dim):
             for j in range(n_dim):
                 self.FIELDS_COORD.append((i + 1, j + 1))
+
         self.empty_sign = "-"
         self.zero_sign = "0"
         self.cross_sign = "X"
