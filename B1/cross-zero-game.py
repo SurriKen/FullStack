@@ -16,6 +16,7 @@ class Game:
             n_dim=self.n_dim,
             empty_sign=self.empty_sign
         )
+
         self.indices = [i for i, char in enumerate(self.field_template) if char == self.empty_sign]
         self.current_player = None
         self.current_coord = None
