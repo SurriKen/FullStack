@@ -14,7 +14,6 @@ class Game:
 
         self.cross_data = []
         self.zero_data = []
-        # self.field_template = f"    1   2   3 \n1 | - | - | - |\n2 | - | - | - |\n3 | - | - | - |"
         self.field_template = self.get_empty_field(
             n_dim=self.n_dim,
             empty_sign=self.empty_sign
@@ -84,7 +83,6 @@ class Game:
         if len(self.player_fields_history[f"Player {self.current_player}"]) >= self.n_dim:
             for coord in self.win_conditions:
                 wc = set([id_ for i, id_ in enumerate(self.FIELDS_COORD) if i in coord])
-                # print("wc", wc, coord, set(self.player_fields[f"Player {self.current_player}"]))
                 if len(wc.intersection(set(self.player_fields_history[f"Player {self.current_player}"]))) == self.n_dim:
                     return True
         return False
@@ -130,17 +128,7 @@ class Game:
 
 if __name__ == "__main__":
     game = Game(n_dim=5)
-    # print(game.FIELDS_COORD)
-    print(game.win_conditions)
-    # print(game.field_template)
-    # print(game.indices)
-
-
-    # print(game.get_empty_field(n_dim=5, empty_sign="-"))
     game.start()
-    print(game.history)
-    print(game.player_fields_history)
-    print(game.win_conditions)
 
 
 
