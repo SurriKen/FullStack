@@ -1,4 +1,3 @@
-1
 import random
 
 class Game:
