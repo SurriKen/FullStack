@@ -4,11 +4,93 @@ import numpy as np
 
 RED_BG = '\033[41m'
 BLUE_BG = '\033[44m'
-BLACK = '\033[30m'
-WHITE = '\033[37m'
-DEFAULT = '\033[39m'
 BLACK_BG = '\033[40m'
+GREEN_BG = '\033[42m'
+BLACK = '\033[30m'
+DEFAULT = '\033[39m'
 RESET = '\033[0m'
+
+class Dot:
+    def __init__(self, coord: tuple[int, int], hid: bool = True, hit_status: bool = False):
+        self.hid = hid
+        self.coord = coord
+        self.hit_status = hit_status
+        self.empty_sign = "-"
+        self.miss_sign = "т"
+        self.damage_sign = "X"
+        self.init_dot_color = DEFAULT
+        self.used_dot_color = BLACK
+        self.bg_miss_color = BLUE_BG
+        self.bg_damage_color = RED_BG
+        if self.hid:
+            self.ship_sign, self.player_sign = self.empty_sign
+            self.bg_color = BLACK_BG
+            self.ship_color = BLACK_BG
+        else:
+            self.bg_color = BLACK_BG
+            self.ship_sign = "O"
+            self.player_sign = "■"
+            self.ship_color = GREEN_BG
+
+    def is_in(self, ship: list) -> bool:
+        return self.coord in ship
+
+class Ship:
+    def __init__(self, lenth: int):
+        self.lenth = lenth
+        self.position = random.choice(["v", "h"])
+        self.ship_coords = None
+        self.ship_cell_around = None
+        self.add_status = False
+
+    def get_ship_cell_around(self, field: np.ndarray) -> list:
+        cell_around = []
+
+        for coord in self.ship_coords:
+            for i in [-1, 0, 1]:
+                for j in [-1, 0, 1]:
+                    if coord not in self.ship_coords and 0 <= coord[0] + i < field.shape[0] and\
+                            0 <= coord[1] + j < field.shape[1]:
+                        try:
+                            _ = field[coord[0] + i, coord[1] + j]
+                            cell_around.append((coord[0] + i, coord[1] + j))
+                        except:
+                            continue
+        return cell_around
+
+    def generate_coords(self, field: np.ndarray) -> bool:
+        rel_coord = [(i, j) for i in range(field.shape[0] - self.lenth + 1) for j in
+                     range(field.shape[1] - self.lenth + 1) if not field[(i, j)]]
+        count = 0
+        add_status = False
+        self.ship_coords = []
+        while not add_status:
+            start_coord = random.choice(rel_coord)
+            for d in self.position:
+                if d == "v" and start_coord[1] + self.lenth + 1 <= field.shape[1] and \
+                        not np.sum(field[start_coord[0]:start_coord[0] + self.lenth, start_coord[1]]):
+                    for i in range(start_coord[0], start_coord[0] + self.lenth):
+                        self.ship_coords.append((i, start_coord[1]))
+                    add_status = True
+                    break
+                elif d == "h" and start_coord[0] + self.lenth + 1 <= field.shape[0] and \
+                        not np.sum(field[start_coord[0], start_coord[1]:start_coord[1] + self.lenth]):
+                    for i in range(start_coord[1], start_coord[1] + self.lenth):
+                        self.ship_coords.append((start_coord[0], i))
+                    add_status = True
+                    break
+                else:
+                    continue
+            count += 1
+            if count > 100:
+                break
+        return add_status
+
+
+class Board:
+    def __init__(self):
+        self.ships = []
+
 
 class Game:
     def __init__(self, n_dim = 6, ships=None):
@@ -26,6 +108,7 @@ class Game:
         self.miss_sign = "т"
         self.damage_sign = "X"
         self.ship_sign = "O"
+        self.player_sign = "■"
 
         self.field_template = self.get_empty_field()
         self.indices = self.update_indices()
