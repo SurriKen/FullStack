@@ -87,23 +87,22 @@ class Ship:
                         not np.sum(field[start_coord[0]:start_coord[0] + self.lenth, start_coord[1]]):
                     for i in range(start_coord[0], start_coord[0] + self.lenth):
                         self.ship_coords.append((i, start_coord[1]))
-                    add_status = True
+                    add_status = True if self.ship_coords else False
                     break
                 elif d == "h" and start_coord[0] + self.lenth + 1 <= field.shape[0] and \
                         not np.sum(field[start_coord[0], start_coord[1]:start_coord[1] + self.lenth]):
                     for i in range(start_coord[1], start_coord[1] + self.lenth):
                         self.ship_coords.append((start_coord[0], i))
-                    add_status = True
+                    add_status = True if self.ship_coords else False
                     break
                 else:
                     continue
             count += 1
-            if count > 100:
+            if count > 10000:
                 break
         return add_status
 
     def check_sink(self) -> bool:
-        print(self.name, self.ship_coords, self.damage)
         if sorted(self.ship_coords) == sorted(self.damage):
             self.sink_status = True
             return True
@@ -171,13 +170,16 @@ class Board:
 
     def get_field(self):
         dec = "" if self.n_dim < 10 else " "
-        name_str = f"{self.owner}"
-        while len(name_str) < 24:
-            name_str = f"_{name_str}_"
-        name_str = f"{dec}   {name_str}\n"
+
         head_str = f"{dec}  "
         for i in range(self.n_dim):
             head_str = f"{head_str}  {i + 1} "
+        print(head_str)
+
+        name_str = f"{self.owner}"
+        while len(name_str) < len(head_str):
+            name_str = f"_{name_str}_"
+        name_str = f"{dec}{name_str}\n"
 
         body_str = f"{name_str}{head_str}\n"
         count = 0
@@ -212,6 +214,7 @@ class Board:
                     ship.activate(self.field_array)
                     self.ships_obj[ship.name] = ship
                     self.add_ship_to_array(ship)
+                    # print(ship.name, ship.add_status, ship.ship_coords)
                     count += 1
                 self.update_dots()
                 break
@@ -219,7 +222,7 @@ class Board:
                 self.initialize_field()
                 self.ship_coord = []
                 x += 1
-                if x > 100:
+                if x > 1000:
                     raise RuntimeError("Too many tries! Change ships dict or field size")
 
     def check_loose_status(self):
