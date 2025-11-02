@@ -1,6 +1,6 @@
 import random
 from time import sleep
-import numpy as np
+
 
 RED_BG = '\033[41m'
 BLUE_BG = '\033[44m'
@@ -53,149 +53,149 @@ class Ship:
     def __init__(self, lenth: int, name: str):
         self.name = name
         self.lenth = lenth
+        self.start_dot = None
         self.position = None
-        self.ship_coords = None
-        self.ship_cell_around = None
-        self.add_status = False
+        self.coords = None
+        self.cell_around = None
         self.damage = None
         self.sink_status = False
 
-    def get_ship_cell_around(self, field: np.ndarray) -> None:
-        self.ship_cell_around = []
-        for coord in self.ship_coords:
+    def activate(self, all_coords: list, used_coords: list) -> None:
+        self.generate_coords(all_coords, used_coords)
+        self.get_cell_around(all_coords)
+        self.damage = []
+
+    def generate_coords(self, all_coords: list, used_coords: list) -> None:
+        max_c = 0
+        for c in all_coords:
+            if c[0] > max_c or c[1] > max_c:
+                max_c = c[0] if c[0] > c[1] else c[1]
+        free_coords = [c for c in all_coords if (c not in used_coords and
+                       (c[0] <= max_c - self.lenth + 1 and c[1] < max_c - self.lenth + 1))]
+        count = 0
+        self.coords = []
+        while True:
+            self.position = None
+            self.start_dot = random.choice(free_coords)
+            position = ["v", "h"]
+            random.shuffle(position)
+            for pos in position:
+                check = []
+                if pos == "v":
+                    self.position = pos
+                    for i in range(self.start_dot[0], self.start_dot[0] + self.lenth):
+                        if (i, self.start_dot[1]) not in used_coords:
+                            check.append(True)
+                        else:
+                            check.append(False)
+                    if all(check):
+                        self.coords = [(i, self.start_dot[1]) for i in range(self.start_dot[0], self.start_dot[0] + self.lenth)]
+                        break
+                else:
+                    self.position = pos
+                    for i in range(self.start_dot[1], self.start_dot[1] + self.lenth):
+                        if (self.start_dot[0], i) not in used_coords:
+                            check.append(True)
+                        else:
+                            check.append(False)
+                    if all(check):
+                        self.coords = [(self.start_dot[0], i) for i in
+                                       range(self.start_dot[1], self.start_dot[1] + self.lenth)]
+                        break
+            if len(self.coords) == self.lenth:
+                break
+
+            count += 1
+            if count > 1000:
+                break
+
+    def get_cell_around(self, all_coords: list) -> None:
+        self.cell_around = []
+        max_c = 0
+        for c in all_coords:
+            if c[0] > max_c or c[1] > max_c:
+                max_c = c[0] if c[0] > c[1] else c[1]
+        for coord in self.coords:
             for i in [-1, 0, 1]:
                 for j in [-1, 0, 1]:
-                    if (coord[0] + i, coord[1] + j) not in self.ship_coords and 0 <= coord[0] + i < field.shape[0] and\
-                            0 <= coord[1] + j < field.shape[1] and coord not in self.ship_cell_around:
-                        try:
-                            _ = field[coord[0] + i, coord[1] + j]
-                            self.ship_cell_around.append((coord[0] + i, coord[1] + j))
-                        except:
-                            continue
-
-    def generate_coords(self, field: np.ndarray) -> bool:
-        rel_coord = [(i, j) for i in range(field.shape[0] - self.lenth + 1) for j in
-                     range(field.shape[1] - self.lenth + 1) if not field[(i, j)]]
-        count = 0
-        add_status = False
-        self.ship_coords = []
-        while not add_status:
-            start_coord = random.choice(rel_coord)
-            self.position = random.choice(["v", "h"])
-            for d in self.position:
-                if d == "v" and start_coord[1] + self.lenth + 1 <= field.shape[1] and \
-                        not np.sum(field[start_coord[0]:start_coord[0] + self.lenth, start_coord[1]]):
-                    for i in range(start_coord[0], start_coord[0] + self.lenth):
-                        self.ship_coords.append((i, start_coord[1]))
-                    add_status = True if self.ship_coords else False
-                    break
-                elif d == "h" and start_coord[0] + self.lenth + 1 <= field.shape[0] and \
-                        not np.sum(field[start_coord[0], start_coord[1]:start_coord[1] + self.lenth]):
-                    for i in range(start_coord[1], start_coord[1] + self.lenth):
-                        self.ship_coords.append((start_coord[0], i))
-                    add_status = True if self.ship_coords else False
-                    break
-                else:
-                    continue
-            count += 1
-            if count > 10000:
-                break
-        return add_status
+                    ac = (coord[0] + i, coord[1] + j)
+                    if ac not in self.coords and 1 <= ac[0] <= max_c and 1 <= ac[1] <= max_c and ac not in self.cell_around:
+                        self.cell_around.append((coord[0] + i, coord[1] + j))
 
     def check_sink(self) -> bool:
-        if sorted(self.ship_coords) == sorted(self.damage):
+        if sorted(self.coords) == sorted(self.damage):
             self.sink_status = True
             return True
         return False
 
-    def activate(self, field: np.ndarray) -> None:
-        self.generate_coords(field)
-        self.get_ship_cell_around(field)
-        self.damage = []
-        self.add_status = True
-
 
 class Board:
-    def __init__(self, n_dim = 6, ships=None, hid=True, owner: str = None):
+    def __init__(self, n_dim: int = 6, hid: bool = True, owner: str = None):
         self.owner = owner if owner else "No owner"
-        self.n_dim = n_dim
+        self.n_dim = self.get_n_dim(n_dim=n_dim)
         self.hid = hid
+        if self.n_dim <= 8:
+            self.ships_dict = {3: 1, 2: 2, 1: 4}
+        elif self.n_dim <= 12:
+            self.ships_dict = {4: 1, 3: 2, 2: 4, 1: 6}
+        else:
+            self.ships_dict = {5: 1, 4: 2, 3: 3, 2: 6, 1: 8}
 
-        if ships is None:
-            ships = {}
-        kwarg = self.get_kwargs(ships)
-        self.ships_dict = kwarg if kwarg else {3: 1, 2: 2, 1: 4}
-
-        self.field_coord = None
-        self.field_array = None
         self.dot_list = None
+        self.all_coords = None
         self.field_template = None
         self.unused_coords = None
         self.ships_obj = None
+        self.used_coords = None
         self.initialize_field()
 
+    @staticmethod
+    def get_n_dim(n_dim: int) -> int:
+        n_min, n_max = 6, 15
+        if not isinstance(n_dim, int):
+            raise TypeError("n_dim must be an integer")
+        if n_min <= n_dim <= n_max:
+            return n_dim
+        elif n_dim < n_min:
+            print(f"n_dim must be >= {n_min} ({n_dim}). That's why n_dim was set as {n_min}")
+            return n_min
+        else:
+            print(f"n_dim must be <= {n_max} ({n_dim}). That's why n_dim was set as {n_max}")
+            return n_max
 
     def initialize_field(self):
-        self.field_coord = [(i, j) for i in range(1, self.n_dim + 1) for j in range(1, self.n_dim + 1)]
-        self.field_array = np.zeros([self.n_dim, self.n_dim], dtype=int)
-        self.dot_list = []
-        for coord in self.field_coord:
-            self.dot_list.append(Dot(coord=coord, hid=self.hid, ship_dot=False))
+        self.dot_list = [[Dot(coord=(j, i), hid=self.hid, hit_status=False, ship_dot=False) for i in range(1, self.n_dim + 1)] for j in range(1, self.n_dim + 1)]
         self.field_template = self.get_field()
         self.unused_coords = [(i, j) for i in range(1, self.n_dim + 1) for j in range(1, self.n_dim + 1)]
-
-    def add_ship_to_array(self, ship: Ship) -> None:
-        for coord in ship.ship_coords:
-            self.field_array[coord] = 2
-        for coord in ship.ship_cell_around:
-            self.field_array[coord] = 1
-
-    def get_kwargs(self, kwargs: dict):
-        if not isinstance(kwargs, dict):
-            raise TypeError("arg 'ships' must be a dict")
-        kwarg_ = {}
-        for k, v in kwargs.items():
-            try:
-                k = int(k)
-                v = int(v)
-            except (TypeError, ValueError) as e:
-                print(e)
-                raise TypeError("arg 'ships' must be a dict of ints, where are key - lenth of ship and value - quantity of ship")
-            else:
-                if k <= self.n_dim:
-                    kwarg_[k] = v
-                else:
-                    raise ValueError("Lenth of ship is larger than field")
-        return kwarg_
+        self.all_coords = [(i, j) for i in range(1, self.n_dim + 1) for j in range(1, self.n_dim + 1)]
 
     def get_field(self):
-        dec = "" if self.n_dim < 10 else " "
-
-        head_str = f"{dec}  "
+        head_str = "   " if self.n_dim < 10 else "   "
         for i in range(self.n_dim):
-            head_str = f"{head_str}  {i + 1} "
-        print(head_str)
+            head_str = f"{head_str} {i + 1} " if i + 1 < 10 else f"{head_str} {i + 1}"
 
-        name_str = f"{self.owner}"
+        name_str = f"{self.owner} Map"
         while len(name_str) < len(head_str):
             name_str = f"_{name_str}_"
-        name_str = f"{dec}{name_str}\n"
+        name_str = f"{name_str}\n"
 
         body_str = f"{name_str}{head_str}\n"
-        count = 0
-        for i in range(self.field_array.shape[0]):
-            row_str = f"{dec}{i + 1} |" if i + 1 < 10 else f"{i + 1} |"
-
-            for j in range(self.field_array.shape[1]):
-                row_str = f"{row_str}{self.dot_list[count].init_dot()}|"
-                count += 1
+        for i in range(self.n_dim):
+            row_str = f" {i + 1} " if i + 1 < 10 else f"{i + 1} "
+            for j in range(self.n_dim):
+                row_str = f"{row_str}{self.dot_list[i][j].init_dot()}"
             body_str = f"{body_str}{row_str}\n"
         return body_str
 
     def update_dots(self):
-        for i, dot in enumerate(self.dot_list):
-            if self.field_array[(self.field_coord[i][0] - 1, self.field_coord[i][1] -1)] == 2:
-                dot.ship_dot = True
+        ships_coord = []
+        for ship in self.ships_obj:
+            if ship.coords not in ships_coord:
+                ships_coord.extend(ship.coords)
+        for line in self.dot_list:
+            for dot in line:
+                if dot.coord in ships_coord:
+                    dot.ship_dot = True
 
     def fill_board(self):
         ships_lenths = []
@@ -208,52 +208,79 @@ class Board:
         while True:
             try:
                 count = 1
-                self.ships_obj = {}
+                self.ships_obj = []
+                used_coords = []
                 for l in ships_lenths:
-                    ship = Ship(l, name=f"Ship #{count}")
-                    ship.activate(self.field_array)
-                    self.ships_obj[ship.name] = ship
-                    self.add_ship_to_array(ship)
-                    # print(ship.name, ship.add_status, ship.ship_coords)
+                    ship = Ship(lenth=l, name=f"Ship #{count}")
+
+                    ship.activate(all_coords=self.all_coords, used_coords=used_coords)
+                    used_coords.extend(ship.coords)
+                    used_coords.extend(ship.cell_around)
+                    used_coords = sorted(list(set(used_coords)))
+
+                    if not ship.coords:
+                        raise ValueError(f"Ship #{count} is empty")
+                    self.ships_obj.append(ship)
                     count += 1
-                self.update_dots()
-                break
+                if len(self.ships_obj) == len(ships_lenths):
+                    self.update_dots()
+                    break
             except:
                 self.initialize_field()
-                self.ship_coord = []
                 x += 1
                 if x > 1000:
                     raise RuntimeError("Too many tries! Change ships dict or field size")
 
     def check_loose_status(self):
-        if all([ship.sink_status for ship in self.ships_obj.values()]):
+        if all([ship.sink_status for ship in self.ships_obj]):
             return True
         return False
 
-    def step(self, coord):
-        idx = self.field_coord.index(coord)
-        self.dot_list[idx].update_status(hid=self.hid, hit_status=True)
-        self.unused_coords = [i for i in self.unused_coords if i != coord]
-        if self.dot_list[idx].ship_dot:
-            for ship in self.ships_obj.values():
-                if (coord[0]-1, coord[1]-1) in ship.ship_coords:
-                    ship.damage.append((coord[0]-1, coord[1]-1))
+    def step(self, coord: tuple[int, int]):
+        td = (coord[0]-1, coord[1]-1)
+        self.dot_list[td[0]][td[1]].update_status(hid=self.hid, hit_status=True)
+        self.unused_coords = [self.dot_list[i][j].coord for i in range(self.n_dim) for j in range(self.n_dim) if not self.dot_list[i][j].hit_status]
+        self.used_coords = [self.dot_list[i][j].coord for i in range(self.n_dim) for j in range(self.n_dim) if self.dot_list[i][j].hit_status]
+        if self.dot_list[td[0]][td[1]].ship_dot:
+            for i, ship in enumerate(self.ships_obj):
+                if coord in ship.coords:
+                    ship.damage.append(coord)
                     ship.check_sink()
                     break
-            if ship.sink_status:
-                for ac in ship.ship_cell_around:
-                    id = self.field_coord.index((ac[0] + 1, ac[1] + 1))
-                    self.dot_list[id].update_status(hid=self.hid, hit_status=True)
+            if self.ships_obj[i].sink_status:
+                for c in self.ships_obj[i].cell_around:
+                    self.dot_list[c[0]-1][c[1]-1].update_status(hid=self.hid, hit_status=True)
+            self.used_coords = [self.dot_list[i][j].coord for i in range(self.n_dim) for j in range(self.n_dim) if self.dot_list[i][j].hit_status]
+            self.unused_coords = [self.dot_list[i][j].coord for i in range(self.n_dim) for j in range(self.n_dim) if
+                                  not self.dot_list[i][j].hit_status]
             return True
-        else:
-            return False
+        return False
 
 
 class Player:
-    def __init__(self, name: str, coords: list):
+    def __init__(self, name: str, coords: list, n_dim: int):
+        self.n_dim = n_dim
         self.name = name
         self.coords = coords
         self.history = []
+        self.damaged = []
+        self.preferences = []
+
+    def damaged_around(self) -> list:
+        pref = []
+        if self.damaged:
+            for coord in self.damaged:
+                x, y = coord
+
+                # направления: вверх, вниз, влево, вправо
+                directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+
+                for dx, dy in directions:
+                    nx, ny = x + dx, y + dy
+                    # проверяем попадание в границы поля
+                    if 1 <= nx <= self.n_dim and 1 <= ny <= self.n_dim and (nx, ny) not in self.history and (nx, ny) not in pref:
+                        pref.append((nx, ny))
+        return pref
 
     def input_text(self):
         input_text = input(f"{self.name} input coordinates. Use format 'row column' with space between\n")
@@ -267,6 +294,9 @@ class Player:
         return input_coord
 
     def step(self, unused_coords):
+        pref = self.damaged_around()
+        if pref:
+            print(f"Coordinates {pref} has high chances to damage enemy")
         input_coord = self.input_text()
         while True:
             if input_coord in unused_coords:
@@ -275,29 +305,30 @@ class Player:
                 print(f"This coordinates incorrect or has already been used. \n"
                       f"Use one of these free coordinates instead {unused_coords}.\n")
                 input_coord = self.input_text()
-        self.history.append(input_coord)
         return input_coord
 
 
 class Computer(Player):
     def step(self, unused_coords):
-        input_coord = random.choice(unused_coords)
-        self.history.append(input_coord)
+        pref = self.damaged_around()
+        if pref and random.random() < 0.9:
+            input_coord = random.choice(pref)
+        else:
+            input_coord = random.choice(unused_coords)
         return input_coord
 
 
 class Game:
-    def __init__(self, n_dim = 6, ships=None):
+    def __init__(self, n_dim = 6):
         self.n_dim = n_dim
-        self.ships = ships
 
-        self.player = Player(name="Player", coords=[])
-        self.player_board = Board(n_dim=n_dim, ships=ships, hid=False, owner=self.player.name)
+        self.player = Player(name="Player", coords=[], n_dim=self.n_dim)
+        self.player_board = Board(n_dim=n_dim, hid=False, owner=self.player.name)
         self.player_board.fill_board()
         self.player.coords = self.player_board.unused_coords
 
-        self.coputer = Computer(name="Computer", coords=[])
-        self.computer_board = Board(n_dim=n_dim, ships=ships, owner=self.coputer.name)
+        self.coputer = Computer(name="Computer", coords=[], n_dim=self.n_dim)
+        self.computer_board = Board(n_dim=n_dim, owner=self.coputer.name)
         self.computer_board.fill_board()
         self.computer_board.coords = self.computer_board.unused_coords
 
@@ -318,49 +349,42 @@ class Game:
             self.current_board = self.computer_board if self.current_player.name == self.player.name else self.player_board
 
     def start(self):
-        # print("Welcome to Sea Fight!")
-        # print("Would you like to play sea fight? (y/n)")
-        # print("If you don't want to play sea fight, type 'n'")
-        # print("If you want to play sea fight, type 'y'")
-        # agr = input()
-        agr = "y"
-        if agr.lower() == "y":
-            step = 1
-            while True:
-                if step == 1:
-                    print(f"Game started!!!\n"
-                          f"{self.unite_boards()}")
+        step = 1
+        while True:
+            if step == 1:
+                print(f"Game started!!!\n"
+                      f"{self.unite_boards()}")
+            print("_" * 50)
+            ships_count = sum([not ship.sink_status for ship in self.current_board.ships_obj])
+            print(f"{self.current_player.name} step. {ships_count} ships left")
+            input_coord = self.current_player.step(self.current_board.unused_coords)
+            res = self.current_board.step(input_coord)
+
+            if res:
+                self.current_player.damaged.append(input_coord)
+            self.current_player.history = self.current_board.used_coords
+
+            print(f"{self.current_player.name} make a step {input_coord}", res)
+            print(self.unite_boards())
+
+            if ships_count != sum([not ship.sink_status for ship in self.current_board.ships_obj]):
+                print(f"Ship has been sunk by {self.current_player.name}. "
+                      f"{sum([not ship.sink_status for ship in self.current_board.ships_obj])} ships left")
+
+            if self.current_board.check_loose_status():
                 print("_" * 50)
-                ships_count = sum([not ship.sink_status for ship in self.current_board.ships_obj.values()])
-                print(f"{self.current_player.name} step. {ships_count} ships left")
-                input_coord = self.current_player.step(self.current_board.unused_coords)
-                res = self.current_board.step(input_coord)
-                print(f"{self.current_player.name} make a step {input_coord}", res)
-                print(self.unite_boards())
-                if ships_count != sum([not ship.sink_status for ship in self.current_board.ships_obj.values()]):
-                    print(f"Ship has been sunk by {self.current_player.name}. "
-                          f"{sum([not ship.sink_status for ship in self.current_board.ships_obj.values()])} ships left")
-                if self.current_board.check_loose_status():
-                    print("_" * 50)
-                    print(f"{self.current_player.name} wins!")
-                    print("_" * 50)
-                    break
+                print(f"{self.current_player.name} wins!")
+                print("_" * 50)
+                break
 
-                step += 1
-                self.next_player(res)
+            step += 1
+            self.next_player(res)
 
-                if step > 2 * self.n_dim ** 2 + 1:
-                    break
-                sleep(1)
-        else:
-            print("Thank you for playing!")
+            if step > 2 * self.n_dim ** 2 + 1:
+                break
+            sleep(1)
 
 
 if __name__ == "__main__":
-    # new_ships = {5: 1, 4: 2, 3: 3, 2: 4, 1: 6}
-    new_ships = {4: 1, 3:2, 2:4, 1:6}
-
-    game = Game(n_dim=10, ships=new_ships)
+    game = Game(n_dim=10)
     game.start()
-    # game.step()
-    # print(all([True, True, True, True, True, True]))
