@@ -266,15 +266,93 @@ class Player:
         self.damaged = []
         self.preferences = []
 
-    def damaged_around(self) -> list:
+    def recommend_moves(self) -> list:
         pref = []
-        if self.damaged:
-            for coord in self.damaged:
-                x, y = coord
+        hit_not_sink = []
+        sink = []
+        for coord in self.damaged:
+            x, y = coord
+            # направления: вверх, вниз, влево, вправо
+            directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+            ca = 0
+            for dx, dy in directions:
+                nx, ny = x + dx, y + dy
+                # проверяем соседние поля если все промахи
+                if (nx < 1 or nx > self.n_dim or ny < 1 or ny > self.n_dim) or \
+                    ((nx, ny) in self.history and (nx, ny) not in self.damaged):
+                    ca += 1
+            # отсортируем одномерные убитые корабли
+            if ca == 4:
+                sink.append(coord)
+            else:
+                hit_not_sink.append(coord)
 
+        # проверим наличие последовательных повреждений и сгруппируем
+        liners = []
+        hit_not_sink_copy = list(tuple(hit_not_sink))
+        for coord in hit_not_sink:
+            if coord in hit_not_sink_copy:
+                liner = [coord]
+                x, y = coord
+                directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+                # проверяем соседние попадания
+                for dx, dy in directions:
+                    nx, ny = x + dx, y + dy
+                    if (nx, ny) in self.damaged:
+                        # если есть то формируем лайнер, удаляем из списка и прерываем цикл
+                        liner.append((nx, ny))
+                        hit_not_sink_copy.pop(hit_not_sink_copy.index(coord))
+                        if (nx, ny) in hit_not_sink_copy:
+                            hit_not_sink_copy.pop(hit_not_sink_copy.index((nx, ny)))
+                        break
+                if len(liner) > 1:
+                    # находим положение лайнера по оси
+                    vec = 0 if liner[0][0] == liner[1][0] else 1
+                    liner = sorted(liner)
+                    # проверяем наличие других повреждений по концам лайнера по оси положения
+                    while True:
+                        dot = (liner[0][0], liner[0][0] -1) if vec == 0 else (liner[0][1] - 1, liner[0][1])
+                        if dot in hit_not_sink_copy:
+                            liner.append(dot)
+                            liner = sorted(liner)
+                            hit_not_sink_copy.pop(hit_not_sink_copy.index(dot))
+                        else:
+                            break
+                    while True:
+                        dot = (liner[-1][0], liner[-1][0] + 1) if vec == 0 else (liner[-1][1] + 1, liner[-1][1])
+                        if dot in hit_not_sink_copy:
+                            liner.append(dot)
+                            liner = sorted(liner)
+                            hit_not_sink_copy.pop(hit_not_sink_copy.index(dot))
+                        else:
+                            break
+                    liners.append(liner)
+        # поверка если лайнер потоплен, если нет то проанализировать ситуацию по концам, сортировка и рекомендации
+        upd_liners = list(tuple(liners))
+        for liner in liners:
+            vec = 0 if liner[0][0] == liner[-1][0] else 1
+            dot1 = (liner[0][0], liner[0][1] - 1) if vec == 0 else (liner[0][0] - 1, liner[0][1])
+            dot2 = (liner[-1][0], liner[-1][1] + 1) if vec == 0 else (liner[-1][0] + 1, liner[-1][1])
+
+            # проверяем поля на концах лайнера и если они не тронуты и не за пределами - добавляем в рекомендации
+            if dot1 not in self.history and 1 <= dot1[0] <= self.n_dim and 1 <= dot1[1] <= self.n_dim:
+                pref.append(dot1)
+            if dot2 not in self.history and 1 <= dot2[0] <= self.n_dim and 1 <= dot2[1] <= self.n_dim:
+                pref.append(dot2)
+
+            if dot1 not in pref and dot2 not in pref:
+                # если поля заняты или за пределами, то лайнер уничтожен
+                upd_liners.pop(upd_liners.index(liner))
+                sink.extend(liner)
+            pass
+        # print('damaged_around,', 'sink', sink, 'hit_not_sink', hit_not_sink)
+        # print('liners,', upd_liners, 'hit_not_sink_copy,', hit_not_sink_copy, 'pref2,', pref)
+
+        if hit_not_sink_copy:
+            for coord in hit_not_sink_copy:
+                x, y = coord
                 # направления: вверх, вниз, влево, вправо
                 directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
-
                 for dx, dy in directions:
                     nx, ny = x + dx, y + dy
                     # проверяем попадание в границы поля
@@ -294,7 +372,8 @@ class Player:
         return input_coord
 
     def step(self, unused_coords):
-        pref = self.damaged_around()
+        pref = self.recommend_moves() if self.damaged else []
+        # print('pref', self.name, pref)
         if pref:
             print(f"Coordinates {pref} has high chances to damage enemy")
         input_coord = self.input_text()
@@ -309,9 +388,11 @@ class Player:
 
 
 class Computer(Player):
+
     def step(self, unused_coords):
-        pref = self.damaged_around()
-        if pref and random.random() < 0.9:
+        pref = self.recommend_moves() if self.damaged else []
+        # print('pref', self.name, pref)
+        if pref and random.random() < 0.98:
             input_coord = random.choice(pref)
         else:
             input_coord = random.choice(unused_coords)
@@ -386,5 +467,5 @@ class Game:
 
 
 if __name__ == "__main__":
-    game = Game(n_dim=10)
+    game = Game(n_dim=6)
     game.start()
