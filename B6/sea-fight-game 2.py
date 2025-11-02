@@ -467,5 +467,5 @@ class Game:
 
 
 if __name__ == "__main__":
-    game = Game(n_dim=6)
+    game = Game(n_dim=15)
     game.start()
